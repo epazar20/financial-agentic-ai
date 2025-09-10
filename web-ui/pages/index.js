@@ -3,6 +3,9 @@ import {useEffect, useState} from "react";
 export default function Home(){
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [showChatPrompt, setShowChatPrompt] = useState(false);
+  const [currentProposal, setCurrentProposal] = useState(null);
   
   useEffect(()=>{
     const es = new EventSource(process.env.NEXT_PUBLIC_STREAM_URL || "http://localhost:5001/stream");
@@ -19,6 +22,10 @@ export default function Home(){
       setEvents(ev=>[data,...ev]);
     });
     es.addEventListener("message", e=>{
+      const data = JSON.parse(e.data);
+      setEvents(ev=>[data,...ev]);
+    });
+    es.addEventListener("chat-analysis", e=>{
       const data = JSON.parse(e.data);
       setEvents(ev=>[data,...ev]);
     });
@@ -111,6 +118,53 @@ export default function Home(){
         correlationId: item.correlationId || "corr-demo"
       })
     });
+  };
+
+  // Chat prompt alanını açma fonksiyonu
+  const openChatPrompt = (proposal) => {
+    setCurrentProposal(proposal);
+    setShowChatPrompt(true);
+  };
+
+  // Chat prompt gönderme fonksiyonu
+  const sendChatResponse = async () => {
+    if (!chatInput.trim() || !currentProposal) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001") + "/chat_response", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          userId: currentProposal.userId || "web_ui_user",
+          response: chatInput.trim(),
+          proposal: currentProposal.proposal || currentProposal,
+          correlationId: currentProposal.correlationId || "corr-demo",
+          originalMessage: currentProposal.message
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Chat response sent:", result);
+        setChatInput("");
+        setShowChatPrompt(false);
+        setCurrentProposal(null);
+      } else {
+        console.error("Failed to send chat response:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error sending chat response:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Chat prompt kapatma fonksiyonu
+  const closeChatPrompt = () => {
+    setShowChatPrompt(false);
+    setCurrentProposal(null);
+    setChatInput("");
   };
 
   return (
@@ -226,42 +280,244 @@ export default function Home(){
                 )}
                 
                 {ev.type === 'final_proposal' && (
-                  <div>
-                    <h3 style={{color: '#6f42c1', margin: '0 0 10px 0'}}>🎯 CoordinatorAgent - Final Mesaj</h3>
-                    <div style={{whiteSpace: 'pre-wrap', marginBottom: 15}}>{ev.message}</div>
-                    <div style={{display: 'flex', gap: 10}}>
+                  <div style={{
+                    backgroundColor: '#e8f5e8',
+                    border: '2px solid #28a745',
+                    borderRadius: 15,
+                    padding: 25,
+                    margin: '15px 0',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                  }}>
+                    {/* Header */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBottom: 20,
+                      borderBottom: '2px solid #28a745',
+                      paddingBottom: 15
+                    }}>
+                      <span style={{fontSize: '24px', marginRight: 10}}>⭐</span>
+                      <span style={{fontSize: '24px', marginRight: 15}}>🔄</span>
+                      <h3 style={{
+                        color: '#2c5530',
+                        margin: 0,
+                        fontSize: '20px',
+                        fontWeight: 'bold'
+                      }}>
+                        CoordinatorAgent - Final Mesaj
+                      </h3>
+                    </div>
+
+                    {/* Greeting */}
+                    <div style={{marginBottom: 20}}>
+                      <p style={{fontSize: '18px', margin: '0 0 10px 0', fontWeight: 'bold'}}>
+                        Merhaba! 👋
+                      </p>
+                    </div>
+
+                    {/* Message Content */}
+                    <div style={{
+                      backgroundColor: 'white',
+                      padding: 20,
+                      borderRadius: 10,
+                      marginBottom: 20,
+                      border: '1px solid #ddd'
+                    }}>
+                      <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: '16px'}}>
+                        {ev.message}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{
+                      display: 'flex',
+                      gap: 15,
+                      justifyContent: 'center',
+                      marginTop: 25
+                    }}>
                       <button 
                         onClick={() => approve(ev)}
                         style={{
-                          padding: '8px 16px',
+                          padding: '12px 24px',
                           backgroundColor: '#28a745',
                           color: 'white',
                           border: 'none',
-                          borderRadius: 5,
-                          cursor: 'pointer'
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          fontSize: '16px',
+                          fontWeight: 'bold',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                          transition: 'all 0.3s ease'
                         }}
+                        onMouseOver={(e) => e.target.style.backgroundColor = '#218838'}
+                        onMouseOut={(e) => e.target.style.backgroundColor = '#28a745'}
                       >
                         ✅ Evet (Onayla)
                       </button>
+                      
                       <button 
                         onClick={() => reject(ev)}
                         style={{
-                          padding: '8px 16px',
+                          padding: '12px 24px',
                           backgroundColor: '#dc3545',
                           color: 'white',
                           border: 'none',
-                          borderRadius: 5,
-                          cursor: 'pointer'
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          fontSize: '16px',
+                          fontWeight: 'bold',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                          transition: 'all 0.3s ease'
                         }}
+                        onMouseOver={(e) => e.target.style.backgroundColor = '#c82333'}
+                        onMouseOut={(e) => e.target.style.backgroundColor = '#dc3545'}
                       >
                         ❌ Hayır (Reddet)
                       </button>
+
+                      <button 
+                        onClick={() => openChatPrompt(ev)}
+                        style={{
+                          padding: '12px 24px',
+                          backgroundColor: '#17a2b8',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          fontSize: '16px',
+                          fontWeight: 'bold',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                          transition: 'all 0.3s ease'
+                        }}
+                        onMouseOver={(e) => e.target.style.backgroundColor = '#138496'}
+                        onMouseOut={(e) => e.target.style.backgroundColor = '#17a2b8'}
+                      >
+                        💬 Özel Cevap
+                      </button>
+                    </div>
+
+                    {/* Footer */}
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#666',
+                      marginTop: 20,
+                      textAlign: 'center',
+                      borderTop: '1px solid #ddd',
+                      paddingTop: 15
+                    }}>
+                      Correlation ID: {ev.correlationId || 'N/A'} | 
+                      Timestamp: {ev.timestamp || new Date().toISOString()}
                     </div>
                   </div>
                 )}
                 
+                {/* Chat Analysis Event */}
+                {ev.type === 'chat-analysis' && (
+                  <div style={{
+                    backgroundColor: '#e3f2fd',
+                    border: '2px solid #2196f3',
+                    borderRadius: 15,
+                    padding: 20,
+                    margin: '15px 0',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBottom: 15,
+                      borderBottom: '2px solid #2196f3',
+                      paddingBottom: 10
+                    }}>
+                      <span style={{fontSize: '24px', marginRight: 10}}>🤖</span>
+                      <h3 style={{
+                        color: '#1976d2',
+                        margin: 0,
+                        fontSize: '18px',
+                        fontWeight: 'bold'
+                      }}>
+                        AI Analiz Sonucu
+                      </h3>
+                    </div>
+
+                    <div style={{marginBottom: 15}}>
+                      <p style={{margin: '0 0 10px 0', fontWeight: 'bold', color: '#1976d2'}}>
+                        Kullanıcı Cevabı:
+                      </p>
+                      <p style={{
+                        backgroundColor: 'white',
+                        padding: 10,
+                        borderRadius: 8,
+                        border: '1px solid #ddd',
+                        fontStyle: 'italic'
+                      }}>
+                        "{ev.userResponse}"
+                      </p>
+                    </div>
+
+                    <div style={{marginBottom: 15}}>
+                      <p style={{margin: '0 0 10px 0', fontWeight: 'bold', color: '#1976d2'}}>
+                        AI Analizi:
+                      </p>
+                      <div style={{
+                        backgroundColor: 'white',
+                        padding: 15,
+                        borderRadius: 8,
+                        border: '1px solid #ddd'
+                      }}>
+                        <p style={{margin: '0 0 8px 0'}}>
+                          <strong>Agent:</strong> {ev.analysis?.intent || 'Unknown'}
+                        </p>
+                        <p style={{margin: '0 0 8px 0'}}>
+                          <strong>Güven:</strong> {ev.analysis?.confidence ? `${(ev.analysis.confidence * 100).toFixed(1)}%` : 'N/A'}
+                        </p>
+                        <p style={{margin: '0 0 8px 0'}}>
+                          <strong>Neden:</strong> {ev.analysis?.reasoning || 'N/A'}
+                        </p>
+                        <p style={{margin: 0}}>
+                          <strong>Eylem:</strong> {ev.agentAction?.action || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      backgroundColor: '#f8f9fa',
+                      padding: 15,
+                      borderRadius: 8,
+                      border: '1px solid #dee2e6'
+                    }}>
+                      <p style={{margin: '0 0 8px 0', fontWeight: 'bold', color: '#495057'}}>
+                        Agent Mesajı:
+                      </p>
+                      <p style={{margin: 0, color: '#6c757d'}}>
+                        {ev.agentAction?.message || 'İşlem tamamlandı.'}
+                      </p>
+                    </div>
+
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#666',
+                      marginTop: 15,
+                      textAlign: 'center',
+                      borderTop: '1px solid #ddd',
+                      paddingTop: 10
+                    }}>
+                      Correlation ID: {ev.correlationId || 'N/A'} | 
+                      Timestamp: {ev.timestamp ? new Date(ev.timestamp * 1000).toISOString() : 'N/A'}
+                    </div>
+                  </div>
+                )}
+
                 {/* Genel event gösterimi */}
-                {!['payments_output', 'risk_output', 'investment_output', 'final_proposal'].includes(ev.type) && (
+                {!['payments_output', 'risk_output', 'investment_output', 'final_proposal', 'chat-analysis'].includes(ev.type) && (
                   <div>
                     <h4 style={{margin: '0 0 10px 0'}}>📋 Event: {ev.type || 'Unknown'}</h4>
                     <pre style={{whiteSpace: 'pre-wrap', fontSize: '12px', backgroundColor: '#f1f1f1', padding: 10, borderRadius: 4}}>
@@ -279,6 +535,167 @@ export default function Home(){
           </div>
         )}
       </div>
+
+      {/* Chat Prompt Modal */}
+      {showChatPrompt && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: 30,
+            borderRadius: 15,
+            width: '90%',
+            maxWidth: 600,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{
+              margin: '0 0 20px 0',
+              color: '#2c5530',
+              fontSize: '20px',
+              textAlign: 'center'
+            }}>
+              💬 Özel Cevap Gönder
+            </h3>
+            
+            <div style={{
+              backgroundColor: '#f8f9fa',
+              padding: 15,
+              borderRadius: 8,
+              marginBottom: 20,
+              border: '1px solid #dee2e6'
+            }}>
+              <p style={{margin: '0 0 10px 0', fontWeight: 'bold', color: '#495057'}}>
+                Mevcut Öneri:
+              </p>
+              <p style={{margin: 0, fontSize: '14px', color: '#6c757d'}}>
+                {currentProposal?.message?.substring(0, 200)}...
+              </p>
+            </div>
+
+            <div style={{marginBottom: 20}}>
+              <label style={{
+                display: 'block',
+                marginBottom: 8,
+                fontWeight: 'bold',
+                color: '#495057'
+              }}>
+                Cevabınız:
+              </label>
+              <textarea
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Örneğin: 'Sadece tahvil yatırımı yapmak istiyorum' veya 'Miktarı 5000₺ olarak değiştir'..."
+                style={{
+                  width: '100%',
+                  height: 120,
+                  padding: 12,
+                  border: '2px solid #dee2e6',
+                  borderRadius: 8,
+                  fontSize: '16px',
+                  fontFamily: 'Arial, sans-serif',
+                  resize: 'vertical',
+                  boxSizing: 'border-box'
+                }}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && e.ctrlKey) {
+                    sendChatResponse();
+                  }
+                }}
+              />
+              <p style={{
+                fontSize: '12px',
+                color: '#6c757d',
+                margin: '5px 0 0 0'
+              }}>
+                💡 İpucu: Ctrl+Enter ile gönderebilirsiniz
+              </p>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              gap: 15,
+              justifyContent: 'center'
+            }}>
+              <button
+                onClick={sendChatResponse}
+                disabled={!chatInput.trim() || isLoading}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: chatInput.trim() && !isLoading ? '#28a745' : '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: chatInput.trim() && !isLoading ? 'pointer' : 'not-allowed',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {isLoading ? '⏳ Gönderiliyor...' : '📤 Gönder'}
+              </button>
+              
+              <button
+                onClick={closeChatPrompt}
+                disabled={isLoading}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                ❌ İptal
+              </button>
+            </div>
+
+            <div style={{
+              marginTop: 20,
+              padding: 15,
+              backgroundColor: '#e3f2fd',
+              borderRadius: 8,
+              border: '1px solid #2196f3'
+            }}>
+              <p style={{
+                margin: 0,
+                fontSize: '14px',
+                color: '#1976d2',
+                fontWeight: 'bold'
+              }}>
+                🤖 AI Analizi:
+              </p>
+              <p style={{
+                margin: '5px 0 0 0',
+                fontSize: '13px',
+                color: '#1976d2'
+              }}>
+                Cevabınız CoordinatorAgent tarafından analiz edilecek ve uygun agent'lara yönlendirilecektir.
+                Örneğin: "tahvil" → InvestmentAgent, "miktar değiştir" → PaymentsAgent
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
