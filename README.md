@@ -39,15 +39,22 @@ graph TD
     D --> E[📈 InvestmentAgent<br/>Yatırım Önerileri]
     E --> F[🎯 CoordinatorAgent<br/>Final Mesaj]
     F --> G[📱 Web UI<br/>Kullanıcı Bildirimi]
-    G --> H{👤 Kullanıcı<br/>Onayı?}
+    G --> H{👤 Kullanıcı<br/>Etkileşimi}
     H -->|✅ Evet| I[💸 Transfer Execute<br/>payments.executed]
     H -->|❌ Hayır| J[🚫 İşlem İptal]
-    I --> K[📊 Hafıza Güncelleme<br/>Redis + Qdrant]
+    H -->|💬 Özel Mesaj| K[🧠 CoordinatorAgent<br/>Mesaj Analizi]
+    K --> L[🤖 Agent'lar<br/>Özel İşlemler]
+    L --> M[📊 Final Rapor<br/>Sonuç Bildirimi]
+    I --> N[📊 Hafıza Güncelleme<br/>Redis + Qdrant]
+    J --> N
+    M --> N
     
     style A fill:#e1f5fe
     style F fill:#f3e5f5
     style G fill:#e8f5e8
-    style I fill:#fff3e0
+    style H fill:#fff3e0
+    style K fill:#f3e5f5
+    style M fill:#e8f5e8
 ```
 
 ## 🏗️ Sistem Mimarisi
@@ -166,9 +173,71 @@ curl http://localhost:3000
 | 🎯 **Final Mesaj** | CoordinatorAgent çıktısı | Kişiselleştirilmiş öneri |
 | 🔔 **Toast Bildirim** | "İşlem başlatılıyor..." | Kullanıcı bilgilendirilir |
 | ✅ **Onay Seçenekleri** | "Evet", "Hayır", "Özel Mesaj" | Butonlar disabled olur |
+| 💬 **Özel Mesaj** | Modal açılır, mesaj yazılır | CoordinatorAgent'e yönlendirilir |
+| 🧠 **Mesaj Analizi** | CoordinatorAgent mesajı analiz eder | Agent'lara özel işlemler |
+| 📊 **Final Rapor** | Tüm işlemler tamamlanır | Sonuç bildirimi |
 | 📱 **Collapse UI** | JSON detayları tıklanabilir | Temiz görünüm |
 
 </div>
+
+## 💬 Kullanıcı Etkileşimi ve Onay Süreci
+
+### 🎯 Etkileşim Senaryoları
+
+#### ✅ Senaryo 1: Tüm Önerileri Onaylama
+```mermaid
+sequenceDiagram
+    participant U as 👤 Kullanıcı
+    participant UI as 📱 Web UI
+    participant CA as 🎯 CoordinatorAgent
+    participant A as 🤖 Agent'lar
+    participant K as 📨 Kafka
+
+    U->>UI: "Evet" butonuna tıklar
+    UI->>UI: Toast: "İşlem başlatılıyor..."
+    UI->>UI: Butonları disabled yapar
+    UI->>CA: approve_all_proposals
+    CA->>A: Tüm agent'lara işlem emri
+    A->>K: payments.executed event
+    K->>UI: final-result-report
+    UI->>U: Sonuç bildirimi
+```
+
+#### ❌ Senaryo 2: Tüm Önerileri Reddetme
+```mermaid
+sequenceDiagram
+    participant U as 👤 Kullanıcı
+    participant UI as 📱 Web UI
+    participant K as 📨 Kafka
+
+    U->>UI: "Hayır" butonuna tıklar
+    UI->>UI: Toast: "Tüm öneriler reddediliyor..."
+    UI->>UI: Butonları disabled yapar
+    UI->>K: all-proposals-rejected event
+    K->>UI: Red işlemi tamamlandı
+    UI->>U: İşlem iptal bildirimi
+```
+
+#### 💬 Senaryo 3: Özel Mesaj ile İstek
+```mermaid
+sequenceDiagram
+    participant U as 👤 Kullanıcı
+    participant UI as 📱 Web UI
+    participant CA as 🎯 CoordinatorAgent
+    participant A as 🤖 Agent'lar
+    participant K as 📨 Kafka
+
+    U->>UI: "Özel Mesaj" butonuna tıklar
+    UI->>UI: Modal açılır
+    U->>UI: Özel mesaj yazar
+    UI->>UI: Toast: "Özel mesajınız işleniyor..."
+    UI->>CA: chat_response (özel mesaj)
+    CA->>CA: Mesajı analiz eder
+    CA->>A: Analiz sonucuna göre agent'lara yönlendirir
+    A->>K: Özel işlem sonuçları
+    K->>UI: final-result-report
+    UI->>U: Kişiselleştirilmiş sonuç bildirimi
+```
 
 ### 🔧 API Test Komutları
 

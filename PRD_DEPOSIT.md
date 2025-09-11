@@ -151,9 +151,33 @@ sequenceDiagram
     
     C->>UI: Kişiselleştirilmiş öneri
     UI->>U: "Tahvile %28 faizle yatırmak ister misin?"
-    U->>UI: "Evet"
-    UI->>P: Onay bildirimi
-    P->>K: payments.executed event
+    
+    alt Kullanıcı Onayı
+        U->>UI: "Evet" tıklar
+        UI->>UI: Toast: "İşlem başlatılıyor..."
+        UI->>C: approve_all_proposals
+        C->>P: Transfer execute emri
+        P->>K: payments.executed event
+        K->>UI: final-result-report
+        UI->>U: "İşlem başarıyla tamamlandı"
+    else Kullanıcı Reddi
+        U->>UI: "Hayır" tıklar
+        UI->>UI: Toast: "Tüm öneriler reddediliyor..."
+        UI->>K: all-proposals-rejected event
+        K->>UI: Red işlemi tamamlandı
+        UI->>U: "İşlem iptal edildi"
+    else Özel Mesaj
+        U->>UI: "Özel Mesaj" tıklar
+        UI->>UI: Modal açılır
+        U->>UI: "Sadece tahvil yatırımı yap"
+        UI->>UI: Toast: "Özel mesajınız işleniyor..."
+        UI->>C: chat_response (özel mesaj)
+        C->>C: Mesajı analiz eder
+        C->>I: Sadece tahvil yatırımı emri
+        I->>K: Tahvil yatırım sonucu
+        K->>UI: final-result-report
+        UI->>U: "Tahvil yatırımı başarıyla tamamlandı"
+    end
 ```
 
 ### 📝 Detaylı Adım Adım Senaryo
@@ -277,11 +301,12 @@ final_message = llm.generate(
 **Final Output:**
 > "Maaşın 25.000₺ olarak yattı ✅. Bütçene göre 7.500₺ tasarrufa aktarabilirim. Risk puanın düşük görünüyor, önceki tercihlerin de tahvil yönünde olmuş. Bu kez tahvile %28 faizle yatırmak ister misin?"
 
-#### 🔸 Adım 6: Kullanıcı Etkileşimi
+#### 🔸 Adım 6: Kullanıcı Etkileşimi (Güncellenmiş)
+
 **UI Bildirimi:**
 ```json
 {
-  "type": "notification",
+  "type": "final_proposal",
   "title": "Maaş Yatışı Bildirimi",
   "message": "Maaşın 25.000₺ olarak yattı ✅",
   "proposal": {
@@ -293,16 +318,47 @@ final_message = llm.generate(
       "duration": "6m"
     }
   },
-  "actions": ["approve", "reject", "modify"]
+  "actions": ["approve", "reject", "custom_message"]
 }
 ```
 
-**Kullanıcı Yanıtı:**
-- **"Evet"** → Transfer execute edilir
-- **"Hayır"** → İşlem iptal edilir
-- **"Değiştir"** → Öneri modifikasyonu
+**Kullanıcı Yanıt Senaryoları:**
 
-**Final Execution:**
+**✅ Senaryo A: Tüm Önerileri Onaylama**
+```json
+{
+  "action": "approve_all",
+  "userId": "123",
+  "correlationId": "deposit_001",
+  "timestamp": "2025-09-09T10:05:00Z"
+}
+```
+**Sonuç:** Tüm agent'lar execute edilir, transfer gerçekleşir
+
+**❌ Senaryo B: Tüm Önerileri Reddetme**
+```json
+{
+  "action": "reject_all",
+  "userId": "123",
+  "correlationId": "deposit_001",
+  "timestamp": "2025-09-09T10:05:00Z"
+}
+```
+**Sonuç:** İşlem iptal edilir, kullanıcıya bildirim gönderilir
+
+**💬 Senaryo C: Özel Mesaj ile İstek**
+```json
+{
+  "action": "custom_message",
+  "userId": "123",
+  "message": "Sadece tahvil yatırımı yap, tasarruf transferini iptal et",
+  "correlationId": "deposit_001",
+  "timestamp": "2025-09-09T10:05:00Z"
+}
+```
+**Sonuç:** CoordinatorAgent mesajı analiz eder, özel işlemler gerçekleştirir
+
+**Final Execution (Onay Senaryosu):**
 ```json
 {
   "event": "payments.executed",
@@ -311,6 +367,25 @@ final_message = llm.generate(
     "transactionId": "tx_789",
     "amount": 7500,
     "status": "completed",
+    "timestamp": "2025-09-09T10:05:00Z"
+  }
+}
+```
+
+**Final Execution (Özel Mesaj Senaryosu):**
+```json
+{
+  "event": "final-result-report",
+  "payload": {
+    "userId": "123",
+    "result": {
+      "message": "Özel isteğiniz doğrultusunda sadece tahvil yatırımı gerçekleştirildi",
+      "executed_actions": ["bond_investment"],
+      "cancelled_actions": ["savings_transfer"],
+      "amount": 5000,
+      "investment_type": "bond",
+      "rate": 0.28
+    },
     "timestamp": "2025-09-09T10:05:00Z"
   }
 }
@@ -330,6 +405,11 @@ final_message = llm.generate(
 | **`investments.proposal`** | Yatırım önerisi | `{userId, products, rates, risk}` |
 | **`advisor.finalMessage`** | Kullanıcıya sunulan nihai mesaj | `{userId, message, proposal}` |
 | **`payments.executed`** | Onay sonrası işlem sonucu | `{userId, txId, status, amount}` |
+| **`all-proposals-approved`** | Tüm öneriler onaylandı | `{userId, correlationId, timestamp}` |
+| **`all-proposals-rejected`** | Tüm öneriler reddedildi | `{userId, correlationId, timestamp}` |
+| **`chat-analysis`** | Özel mesaj analizi | `{userId, message, analysis, actions}` |
+| **`final-result-report`** | Final sonuç raporu | `{userId, result, executed_actions}` |
+| **`agent-output`** | Agent çıktıları | `{agent, action, result, correlationId}` |
 
 </div>
 
@@ -343,11 +423,25 @@ graph LR
     B --> E[advisor.finalMessage]
     C --> E
     D --> E
-    E --> F[payments.executed]
+    E --> F{👤 Kullanıcı<br/>Etkileşimi}
+    F -->|✅ Evet| G[all-proposals-approved]
+    F -->|❌ Hayır| H[all-proposals-rejected]
+    F -->|💬 Özel Mesaj| I[chat-analysis]
+    G --> J[payments.executed]
+    H --> K[İşlem İptal]
+    I --> L[agent-output]
+    L --> M[final-result-report]
+    J --> N[Memory Update]
+    K --> N
+    M --> N
     
     style A fill:#e1f5fe
     style E fill:#f3e5f5
-    style F fill:#e8f5e8
+    style F fill:#fff3e0
+    style G fill:#e8f5e8
+    style H fill:#ffebee
+    style I fill:#f3e5f5
+    style M fill:#e8f5e8
 ```
 
 ## 🎨 6. UI Akışı ve Kullanıcı Deneyimi
