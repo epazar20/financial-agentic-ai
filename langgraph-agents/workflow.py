@@ -128,6 +128,7 @@ class FinancialWorkflow:
         }
         
         # Event'i yayınla
+        payments_output["type"] = "agent-output"
         self.publisher_queue.put({"event": "agent-output", "data": payments_output})
         
         # Kafka'ya gönder
@@ -181,6 +182,7 @@ class FinancialWorkflow:
         }
         
         # Event'i yayınla
+        risk_output["type"] = "agent-output"
         self.publisher_queue.put({"event": "agent-output", "data": risk_output})
         
         # Kafka'ya gönder
@@ -239,6 +241,7 @@ class FinancialWorkflow:
         }
         
         # Event'i yayınla
+        investment_output["type"] = "agent-output"
         self.publisher_queue.put({"event": "agent-output", "data": investment_output})
         
         # Kafka'ya gönder
@@ -359,17 +362,21 @@ class FinancialWorkflow:
         Returns:
             str: Uzun vadeli hafıza bilgisi
         """
-        similar_memories = service_manager.qdrant_service.search_similar(
-            userId, query, top_k=3
-        )
-        
-        if similar_memories:
-            memory_texts = [
-                f"- {mem['payload'].get('content', '')[:100]}..." 
-                for mem in similar_memories
-            ]
-            return f"Geçmiş benzer analizler:\n" + "\n".join(memory_texts)
-        return ""
+        try:
+            similar_memories = service_manager.qdrant_service.search_similar(
+                userId, query, top_k=3
+            )
+            
+            if similar_memories:
+                memory_texts = [
+                    f"- {mem['payload'].get('content', '')[:100]}..." 
+                    for mem in similar_memories
+                ]
+                return f"Geçmiş benzer analizler:\n" + "\n".join(memory_texts)
+            return ""
+        except Exception as e:
+            print(f"⚠️ Uzun vadeli hafıza hatası: {e}")
+            return ""
     
     def _build_coordinator_prompt(self, userId: str, amount: int, state: FinancialState, 
                                 short_term_memory: str, long_term_memory: str) -> str:
@@ -427,24 +434,44 @@ Türkçe yanıt ver ve finansal terimleri açıkla."""
             correlationId: İşlem takip ID'si
             final_message: Final mesaj
         """
-        # Uzun vadeli hafızayı güncelle (Qdrant)
-        service_manager.qdrant_service.store_memory(
-            user_id=userId,
-            content=f"Deposit analysis for {amount}₺: {final_message}",
-            metadata={
-                "type": "deposit_analysis",
-                "amount": amount,
-                "correlationId": correlationId
-            }
-        )
+        try:
+            # Uzun vadeli hafızayı güncelle (Qdrant)
+            service_manager.qdrant_service.store_memory(
+                user_id=userId,
+                content=f"Deposit analysis for {amount}₺: {final_message}",
+                metadata={
+                    "type": "deposit_analysis",
+                    "amount": amount,
+                    "correlationId": correlationId
+                }
+            )
+            print(f"✅ Uzun vadeli hafıza güncellendi: {userId}")
+        except Exception as e:
+            print(f"⚠️ Uzun vadeli hafıza güncelleme hatası: {e}")
         
         # Kısa vadeli hafızayı güncelle (Redis)
-        service_manager.redis_service.push_user_event(userId, {
-            "type": "deposit",
-            "amount": amount,
-            "ts": int(time.time()),
-            "message": final_message
-        })
+        try:
+            service_manager.redis_service.push_user_event(userId, {
+                "type": "deposit",
+                "amount": amount,
+                "ts": int(time.time()),
+                "message": final_message
+            })
+            print(f"✅ Kısa vadeli hafıza güncellendi: {userId}")
+        except Exception as e:
+            print(f"⚠️ Kısa vadeli hafıza güncelleme hatası: {e}")
+    
+    def run(self, initial_state: FinancialState) -> Optional[FinancialState]:
+        """
+        Workflow'u çalıştırır (execute metodunun alias'ı)
+        
+        Args:
+            initial_state: Başlangıç state'i
+            
+        Returns:
+            FinancialState: Workflow sonucu
+        """
+        return self.execute(initial_state)
     
     def execute(self, initial_state: FinancialState) -> Optional[FinancialState]:
         """

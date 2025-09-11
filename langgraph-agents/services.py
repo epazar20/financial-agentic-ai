@@ -598,7 +598,15 @@ class MCPService:
                 json=payload, 
                 timeout=config.API_TIMEOUTS["MCP_CALL"]
             )
-            return response.json()
+            
+            if response.status_code == 200:
+                try:
+                    return response.json()
+                except json.JSONDecodeError:
+                    return {"error": "mcp_call_failed", "detail": "Invalid JSON response", "url": url}
+            else:
+                return {"error": "mcp_call_failed", "detail": f"HTTP {response.status_code}: {response.text}", "url": url}
+                
         except Exception as e:
             return {"error": "mcp_call_failed", "detail": str(e), "url": url}
 

@@ -66,7 +66,7 @@ class Config:
     
     # Qdrant Collection Ayarları
     FINANCIAL_MEMORY_COLLECTION: str = "financial_memory"
-    VECTOR_SIZE: int = 768  # Nomic-embed-text modelinin vektör boyutu
+    VECTOR_SIZE: int = 384  # all-minilm modelinin vektör boyutu
     VECTOR_DISTANCE: str = "COSINE"  # Vektör benzerlik ölçümü
     
     # Kafka Topic'leri
@@ -82,7 +82,7 @@ class Config:
     # Ollama Model Ayarları
     OLLAMA_MODELS = {
         "LLM_MODEL": "llama3.2:1b",  # Tool calling için küçük model
-        "EMBEDDING_MODEL": "nomic-embed-text"  # Vektör embedding için
+        "EMBEDDING_MODEL": "all-minilm"  # Embedding için küçük model
     }
     
     # Redis Key Patterns

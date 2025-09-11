@@ -352,7 +352,7 @@ graph LR
 
 ## 🎨 6. UI Akışı ve Kullanıcı Deneyimi
 
-### 6.1 📱 Bildirim Kartı Tasarımı
+### 6.1 📱 Bildirim Kartı Tasarımı (Güncellenmiş)
 
 ```html
 <div class="notification-card">
@@ -368,41 +368,92 @@ graph LR
       <p><strong>Yatırım Önerisi:</strong> Tahvil %28</p>
       <p class="question">Onaylıyor musun?</p>
     </div>
+    
+    <!-- Collapse Edilebilir JSON Detayları -->
+    <div class="json-details">
+      <div class="collapse-header" onclick="toggleCollapse('agent-details')">
+        <span>📋 Agent Detayları</span>
+        <span class="collapse-icon">▶️</span>
+      </div>
+      <div class="json-content" id="agent-details" style="display: none;">
+        <pre>{JSON içerik}</pre>
+      </div>
+    </div>
   </div>
   
   <div class="actions">
-    <button class="approve">✅ Evet</button>
-    <button class="reject">❌ Hayır</button>
-    <button class="modify">✏️ Değiştir</button>
+    <button class="approve" disabled="false">✅ Evet</button>
+    <button class="reject" disabled="false">❌ Hayır</button>
+    <button class="custom-message" disabled="false">💬 Özel Mesaj</button>
+  </div>
+  
+  <!-- Toast Mesaj Sistemi -->
+  <div class="toast-message" id="toast">
+    <span class="toast-icon">🔔</span>
+    <span class="toast-text">İşlem başlatılıyor...</span>
   </div>
 </div>
 ```
 
-### 6.2 🔄 Real-time Event Handling
+### 6.2 🔄 Real-time Event Handling (Güncellenmiş)
 
 ```javascript
-// WebSocket bağlantısı
-const ws = new WebSocket('ws://localhost:5001/ws');
+// Server-Sent Events bağlantısı
+const eventSource = new EventSource('http://localhost:5001/stream');
 
 // Event dinleyicileri
-ws.onmessage = (event) => {
+eventSource.addEventListener('agent-output', (event) => {
   const data = JSON.parse(event.data);
-  
-  switch(data.type) {
-    case 'agent-output':
-      displayAgentOutput(data.agent, data.message);
-      break;
-    case 'notification':
-      showNotification(data.message, data.proposal);
-      break;
-    case 'execution':
-      updateTransactionStatus(data.result);
-      break;
-  }
-};
+  displayAgentOutput(data.agent, data.message, data.result);
+});
 
-// Kullanıcı aksiyonu
+eventSource.addEventListener('final_proposal', (event) => {
+  const data = JSON.parse(event.data);
+  showNotification(data.message, data.proposal);
+  enableUserActions(); // Butonları aktif et
+});
+
+eventSource.addEventListener('final-result-report', (event) => {
+  const data = JSON.parse(event.data);
+  updateTransactionStatus(data.result);
+  disableLoadingState(); // Loading'i kapat
+});
+
+// Collapse toggle fonksiyonu
+function toggleCollapse(eventId) {
+  const content = document.getElementById(eventId);
+  const icon = document.querySelector(`[onclick="toggleCollapse('${eventId}')"] .collapse-icon`);
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    icon.textContent = '🔽';
+  } else {
+    content.style.display = 'none';
+    icon.textContent = '▶️';
+  }
+}
+
+// Toast mesaj sistemi
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  toast.querySelector('.toast-text').textContent = message;
+  toast.style.display = 'flex';
+  
+  setTimeout(() => {
+    toast.style.display = 'none';
+  }, 3000);
+}
+
+// Kullanıcı aksiyonu (güncellenmiş)
 function handleUserAction(action, proposal) {
+  // Butonları disabled yap
+  disableAllButtons();
+  
+  // Toast mesaj göster
+  showToast(action === 'approve' ? 'İşlem başlatılıyor...' : 
+           action === 'reject' ? 'Tüm öneriler reddediliyor...' : 
+           'Özel mesajınız işleniyor...');
+  
   fetch('/api/action', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -414,18 +465,34 @@ function handleUserAction(action, proposal) {
     })
   });
 }
+
+// Özel mesaj modal
+function openCustomMessageModal() {
+  const modal = document.getElementById('custom-message-modal');
+  modal.style.display = 'block';
+}
+
+function sendCustomMessage() {
+  const message = document.getElementById('custom-message-input').value;
+  if (message.trim()) {
+    handleUserAction('custom_message', { message: message.trim() });
+    closeCustomMessageModal();
+  }
+}
 ```
 
-### 6.3 📊 Dashboard Görünümü
+### 6.3 📊 Dashboard Görünümü (Güncellenmiş)
 
 <div align="center">
 
-| Bölüm | İçerik | Güncelleme |
-|-------|--------|------------|
-| **💰 Maaş Durumu** | Yatış miktarı, tarih | Real-time |
-| **📈 Yatırım Önerileri** | Tahvil, hisse, fon oranları | Piyasa verileri |
-| **🛡️ Risk Analizi** | Risk skoru, güvenlik durumu | Agent çıktısı |
-| **📋 Bekleyen İşlemler** | Onay bekleyen transferler | Kullanıcı aksiyonu |
+| Bölüm | İçerik | Güncelleme | Yeni Özellikler |
+|-------|--------|------------|-----------------|
+| **💰 Maaş Durumu** | Yatış miktarı, tarih | Real-time | Toast bildirimler |
+| **📈 Yatırım Önerileri** | Tahvil, hisse, fon oranları | Piyasa verileri | Collapse edilebilir detaylar |
+| **🛡️ Risk Analizi** | Risk skoru, güvenlik durumu | Agent çıktısı | JSON içerikler gizli |
+| **📋 Bekleyen İşlemler** | Onay bekleyen transferler | Kullanıcı aksiyonu | Disabled state yönetimi |
+| **💬 Özel Mesajlar** | Kullanıcı özel istekleri | Modal input | CoordinatorAgent entegrasyonu |
+| **🔔 Bildirimler** | Toast mesaj sistemi | 3 saniye otomatik | Modern UI/UX |
 
 </div>
 
@@ -741,23 +808,89 @@ jobs:
           docker-compose -f docker-compose.prod.yml up -d
 ```
 
-## 📚 11. Dokümantasyon ve Kaynaklar
+## 🆕 11. Son Güncellemeler ve Yeni Özellikler (2025-09-10)
 
-### 11.1 📖 Teknik Dokümantasyon
+### 11.1 ✨ UI/UX İyileştirmeleri
+
+#### 🎯 Collapse Edilebilir JSON İçerikler
+- **Özellik**: Tüm JSON içerikler başlangıçta kapalı
+- **Avantaj**: Temiz görünüm, kullanıcı kontrolü
+- **Implementasyon**: `collapsedEvents` state ile yönetim
+- **Kullanım**: Header'a tıklayarak açma/kapama
+
+#### 🔔 Toast Mesaj Sistemi
+- **Özellik**: Modern kullanıcı bildirimleri
+- **Süre**: 3 saniye otomatik kapanma
+- **Animasyon**: Slide-in efekti
+- **Pozisyon**: Sağ üst köşe, fixed
+
+#### 🔒 Buton Disabled State Yönetimi
+- **Özellik**: Çift tıklama koruması
+- **Durum**: Loading state ile entegre
+- **Görsel**: Gri renk, opacity 0.6
+- **Kontrol**: Final rapor gelene kadar disabled
+
+#### 💬 Özel Mesaj Modal Sistemi
+- **Özellik**: Kullanıcı özel mesaj gönderebilir
+- **Entegrasyon**: CoordinatorAgent'e yönlendirme
+- **UI**: Modal popup ile temiz arayüz
+- **Kontrol**: Ctrl+Enter ile hızlı gönderim
+
+### 11.2 🔧 Teknik İyileştirmeler
+
+#### 🧠 RAG Sistemi Aktifleştirme
+- **Embedding Model**: `all-minilm` (384 dimension)
+- **Vector DB**: Qdrant long-term memory
+- **RAG Process**: Retrieval Augmented Generation
+- **Memory Integration**: Redis + Qdrant çift katman
+
+#### 🔄 Workflow Optimizasyonu
+- **Fallback Modu**: Kapatıldı
+- **Gerçek Workflow**: LangGraph tam aktif
+- **Event Management**: Duplicate engelleme
+- **Loading Control**: Final rapor bazlı yönetim
+
+#### 📡 Event Streaming İyileştirmeleri
+- **Server-Sent Events**: WebSocket yerine SSE
+- **Event Types**: Tip bazlı filtreleme
+- **Duplicate Prevention**: Unique key sistemi
+- **Real-time Updates**: Anlık bildirimler
+
+### 11.3 🎨 Kullanıcı Deneyimi Geliştirmeleri
+
+#### 📱 Responsive Tasarım
+- **Mobil Uyumluluk**: Tüm cihazlarda çalışır
+- **Touch Friendly**: Dokunmatik optimizasyon
+- **Modern UI**: Güncel tasarım trendleri
+- **Accessibility**: Erişilebilirlik standartları
+
+#### 🔄 Akış Kontrolü
+- **State Management**: React hooks ile yönetim
+- **Error Handling**: Hata durumu yönetimi
+- **Loading States**: Kullanıcı bilgilendirmesi
+- **Feedback Loop**: Geri bildirim sistemi
+
+## 📚 12. Dokümantasyon ve Kaynaklar
+
+### 12.1 📖 Teknik Dokümantasyon
 
 - [API Documentation](http://localhost:5001/docs) - Swagger/OpenAPI
 - [Agent Architecture](docs/architecture.md) - Detaylı mimari açıklaması
 - [Memory Systems](docs/memory.md) - Redis ve Qdrant kullanımı
 - [Event Flow](docs/events.md) - Kafka event akışı
 - [Testing Guide](docs/testing.md) - Test stratejileri
+- [UI Components](docs/ui-components.md) - React bileşenleri
+- [RAG Implementation](docs/rag-system.md) - Retrieval Augmented Generation
 
-### 11.2 🔗 Dış Kaynaklar
+### 12.2 🔗 Dış Kaynaklar
 
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
 - [Apache Kafka Guide](https://kafka.apache.org/documentation/)
 - [Qdrant Vector Database](https://qdrant.tech/documentation/)
 - [Redis Documentation](https://redis.io/documentation)
 - [Hugging Face API](https://huggingface.co/docs/api-inference)
+- [Next.js Documentation](https://nextjs.org/docs)
+- [React Hooks Guide](https://reactjs.org/docs/hooks-intro.html)
 
 ---
 
@@ -765,8 +898,9 @@ jobs:
 
 **📋 Bu PRD dokümantasyonu Financial Agentic AI projesinin teknik gereksinimlerini detaylı olarak tanımlar.**
 
-**🔄 Güncelleme Tarihi:** 2025-09-09  
-**📝 Versiyon:** 2.0  
-**👨‍💻 Geliştirici:** epazar20
+**🔄 Güncelleme Tarihi:** 2025-09-10  
+**📝 Versiyon:** 2.1  
+**👨‍💻 Geliştirici:** epazar20  
+**🆕 Son Güncellemeler:** UI/UX iyileştirmeleri, RAG sistemi, Toast bildirimler, Collapse UI
 
 </div>

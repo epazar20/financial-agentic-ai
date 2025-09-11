@@ -22,9 +22,12 @@ Bu proje, **maaş yatışı** durumunda otomatik olarak devreye giren akıllı f
 
 - 🤖 **4 Akıllı Agent**: PaymentsAgent, RiskAgent, InvestmentAgent, CoordinatorAgent
 - 🧠 **Çift Hafıza Sistemi**: Redis (kısa vadeli) + Qdrant (uzun vadeli)
-- 📡 **Real-time İletişim**: Kafka event streaming + WebSocket bildirimleri
+- 📡 **Real-time İletişim**: Kafka event streaming + Server-Sent Events
 - 🎨 **Modern UI**: Next.js ile responsive web arayüzü
 - 🔒 **Güvenli API**: Hugging Face LLM entegrasyonu
+- 🔄 **RAG Sistemi**: Retrieval Augmented Generation ile akıllı öneriler
+- 📱 **Toast Bildirimler**: Modern kullanıcı bildirim sistemi
+- 🎯 **Collapse UI**: JSON içerikler için temiz görünüm
 
 ## 🔄 Maaş Yatış Senaryosu Akışı
 
@@ -159,9 +162,11 @@ curl http://localhost:3000
 |------|----------|-------|
 | 🌐 **Web UI Aç** | http://localhost:3000 | Maaş yatış butonları görünür |
 | 💳 **25.000₺ Butonu** | "Maaş Yatışı (API)" tıkla | PaymentsAgent devreye girer |
-| 🤖 **Agent Çalışması** | RiskAgent → InvestmentAgent | Real-time bildirimler |
+| 🤖 **Agent Çalışması** | RiskAgent → InvestmentAgent | Real-time bildirimler (JSON'lar kapalı) |
 | 🎯 **Final Mesaj** | CoordinatorAgent çıktısı | Kişiselleştirilmiş öneri |
-| ✅ **Onay** | "Evet" butonuna tıkla | Transfer execute edilir |
+| 🔔 **Toast Bildirim** | "İşlem başlatılıyor..." | Kullanıcı bilgilendirilir |
+| ✅ **Onay Seçenekleri** | "Evet", "Hayır", "Özel Mesaj" | Butonlar disabled olur |
+| 📱 **Collapse UI** | JSON detayları tıklanabilir | Temiz görünüm |
 
 </div>
 
@@ -435,6 +440,25 @@ QDRANT_HOST=production-qdrant
 KAFKA_BOOTSTRAP_SERVERS=production-kafka:9092
 ```
 
+## 🆕 Son Güncellemeler (2025-09-10)
+
+### ✨ Yeni Özellikler
+
+- 🎯 **Collapse Edilebilir JSON İçerikler** - Tüm JSON'lar başlangıçta kapalı, tıklanarak açılabilir
+- 🔔 **Toast Mesaj Sistemi** - Modern kullanıcı bildirimleri (3 saniye otomatik kapanma)
+- 🔒 **Buton Disabled State** - Çift tıklama koruması ve loading state yönetimi
+- 💬 **Özel Mesaj Modal** - Kullanıcı özel mesaj gönderebilir ve CoordinatorAgent'e yönlendirilir
+- 🧠 **RAG Sistemi Aktif** - Ollama embedding + Qdrant long-term memory entegrasyonu
+- 🎨 **Temiz UI Akışı** - Gereksiz mesajlar kaldırıldı, daha temiz kullanıcı deneyimi
+
+### 🔧 Teknik İyileştirmeler
+
+- ✅ **Gerçek Workflow Aktif** - Fallback modu kapatıldı, tam LangGraph workflow çalışıyor
+- ✅ **Ollama Embedding** - `all-minilm` modeli ile 384-dimension embeddings
+- ✅ **Qdrant Vector DB** - Long-term memory ile RAG sistemi
+- ✅ **Event Type Management** - Duplicate event'ler engellendi
+- ✅ **Loading State Control** - Final rapor gelene kadar loading state
+
 ## 📈 Gelecek Geliştirmeler
 
 ### 🎯 Roadmap
@@ -486,6 +510,10 @@ gh pr create --title "Your Feature Title" --body "Description"
 <div align="center">
 
 **⭐ Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!**
+
+**🔄 Son Güncelleme:** 2025-09-10  
+**📝 Versiyon:** 2.1  
+**🆕 Yeni Özellikler:** Collapse UI, Toast bildirimler, RAG sistemi, Özel mesaj modal
 
 Made with ❤️ by [epazar20](https://github.com/epazar20)
 
