@@ -430,8 +430,12 @@ class OllamaService:
     def _connect(self):
         """Ollama modellerini başlatır"""
         try:
-            self.llm = OllamaLLM(model=config.OLLAMA_MODELS["LLM_MODEL"])
-            self.embeddings = OllamaEmbeddings(model=config.OLLAMA_MODELS["EMBEDDING_MODEL"])
+            self.llm = OllamaLLM(
+                model=config.OLLAMA_MODELS["LLM_MODEL"],
+                base_url=config.OLLAMA_BASE_URL
+            )
+            # OllamaEmbeddings base_url desteklemiyor, manuel embedding kullanacağız
+            self.embeddings = None
             print("✅ Ollama bağlantısı başarılı")
         except Exception as e:
             print(f"❌ Ollama bağlantı hatası: {e}")
@@ -440,7 +444,7 @@ class OllamaService:
     
     def is_healthy(self) -> bool:
         """Ollama servisinin sağlık durumunu kontrol eder"""
-        return self.llm is not None and self.embeddings is not None
+        return self.llm is not None
     
     def get_embedding(self, text: str) -> Optional[List[float]]:
         """

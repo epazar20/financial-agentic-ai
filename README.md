@@ -28,6 +28,9 @@ Bu proje, **maaş yatışı** durumunda otomatik olarak devreye giren akıllı f
 - 🔄 **RAG Sistemi**: Retrieval Augmented Generation ile akıllı öneriler
 - 📱 **Toast Bildirimler**: Modern kullanıcı bildirim sistemi
 - 🎯 **Collapse UI**: JSON içerikler için temiz görünüm
+- 🦙 **ngrok Ollama LLM**: llama3.2:3b model'i ile güçlü LLM çağrıları
+- 🔧 **MCP Tool Calling**: Fallback sistem ile MCP araçları entegrasyonu
+- 📊 **nomic-embed-text**: RAG sistemi için gelişmiş embedding modeli
 
 ## 🔄 Maaş Yatış Senaryosu Akışı
 
@@ -416,9 +419,9 @@ docker-compose restart langgraph-agents
 **Problem:** Web UI'den API'ye istek gönderilemiyor
 
 **Çözüm:**
-```bash
-# CORS origins'i kontrol et
-echo $CORS_ORIGINS
+   ```bash
+   # CORS origins'i kontrol et
+   echo $CORS_ORIGINS
 
 # Docker compose'da CORS_ORIGINS'i güncelle
 docker-compose down
@@ -469,7 +472,7 @@ docker-compose up -d langgraph-agents
 
 ### 🔍 Debug Komutları
 
-```bash
+   ```bash
 # Tüm servis loglarını görüntüle
 docker-compose logs -f
 
@@ -509,7 +512,7 @@ QDRANT_HOST=production-qdrant
 KAFKA_BOOTSTRAP_SERVERS=production-kafka:9092
 ```
 
-## 🆕 Son Güncellemeler (2025-09-10)
+## 🆕 Son Güncellemeler (2025-09-16)
 
 ### ✨ Yeni Özellikler
 
@@ -519,6 +522,9 @@ KAFKA_BOOTSTRAP_SERVERS=production-kafka:9092
 - 💬 **Özel Mesaj Modal** - Kullanıcı özel mesaj gönderebilir ve CoordinatorAgent'e yönlendirilir
 - 🧠 **RAG Sistemi Aktif** - Ollama embedding + Qdrant long-term memory entegrasyonu
 - 🎨 **Temiz UI Akışı** - Gereksiz mesajlar kaldırıldı, daha temiz kullanıcı deneyimi
+- 🦙 **ngrok Ollama LLM** - llama3.2:3b model'i ile güçlü LLM çağrıları
+- 🔧 **MCP Tool Calling** - Fallback sistem ile MCP araçları entegrasyonu
+- 📊 **nomic-embed-text** - RAG sistemi için gelişmiş embedding modeli
 
 ### 🔧 Teknik İyileştirmeler
 
@@ -527,6 +533,11 @@ KAFKA_BOOTSTRAP_SERVERS=production-kafka:9092
 - ✅ **Qdrant Vector DB** - Long-term memory ile RAG sistemi
 - ✅ **Event Type Management** - Duplicate event'ler engellendi
 - ✅ **Loading State Control** - Final rapor gelene kadar loading state
+- ✅ **ngrok Ollama Entegrasyonu** - Remote Ollama servisi ile güçlü LLM çağrıları
+- ✅ **Model Upgrade** - llama3.2:1b → llama3.2:3b (daha güçlü analiz)
+- ✅ **nomic-embed-text** - RAG sistemi için gelişmiş embedding modeli (768-dimension)
+- ✅ **MCP Tool Integration** - Fallback sistem ile MCP araçları çağrılıyor
+- ✅ **Timeout Optimizasyonu** - Ollama çağrıları için 120 saniye timeout
 
 ## 📈 Gelecek Geliştirmeler
 
@@ -545,7 +556,7 @@ KAFKA_BOOTSTRAP_SERVERS=production-kafka:9092
 
 ### 🔧 Development Setup
 
-```bash
+   ```bash
 # Development branch oluştur
 git checkout -b feature/your-feature-name
 
@@ -580,9 +591,9 @@ gh pr create --title "Your Feature Title" --body "Description"
 
 **⭐ Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!**
 
-**🔄 Son Güncelleme:** 2025-09-10  
-**📝 Versiyon:** 2.1  
-**🆕 Yeni Özellikler:** Collapse UI, Toast bildirimler, RAG sistemi, Özel mesaj modal
+**🔄 Son Güncelleme:** 2025-09-16  
+**📝 Versiyon:** 2.3  
+**🆕 Yeni Özellikler:** ngrok Ollama LLM entegrasyonu, llama3.2:3b model upgrade, nomic-embed-text RAG sistemi
 
 Made with ❤️ by [epazar20](https://github.com/epazar20)
 

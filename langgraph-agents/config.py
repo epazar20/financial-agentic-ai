@@ -41,7 +41,8 @@ class Config:
     
     # Ollama Konfigürasyonu (Küçük LLM Modelleri)
     # Tool calling ve embedding işlemleri için yerel LLM servisi
-    OLLAMA_BASE_URL: str = os.environ.get("OLLAMA_BASE_URL", "http://financial-ollama:11434")
+    # ngrok ile host edilen Ollama servisi kullanılıyor
+    OLLAMA_BASE_URL: str = os.environ.get("OLLAMA_HOST", os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"))
     
     # Kafka Konfigürasyonu (Event Streaming)
     # Mikroservisler arası asenkron iletişim için
@@ -66,7 +67,7 @@ class Config:
     
     # Qdrant Collection Ayarları
     FINANCIAL_MEMORY_COLLECTION: str = "financial_memory"
-    VECTOR_SIZE: int = 384  # all-minilm modelinin vektör boyutu
+    VECTOR_SIZE: int = 768  # nomic-embed-text modelinin vektör boyutu
     VECTOR_DISTANCE: str = "COSINE"  # Vektör benzerlik ölçümü
     
     # Kafka Topic'leri
@@ -81,8 +82,8 @@ class Config:
     
     # Ollama Model Ayarları
     OLLAMA_MODELS = {
-        "LLM_MODEL": "llama3.2:1b",  # Tool calling için küçük model
-        "EMBEDDING_MODEL": "all-minilm"  # Embedding için küçük model
+        "LLM_MODEL": "llama3.2:3b",  # Tool calling için güçlü model (ngrok ile host edilen)
+        "EMBEDDING_MODEL": "nomic-embed-text:latest"  # Embedding için nomic model
     }
     
     # Redis Key Patterns

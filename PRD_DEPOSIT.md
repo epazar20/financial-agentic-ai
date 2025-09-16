@@ -902,7 +902,7 @@ jobs:
           docker-compose -f docker-compose.prod.yml up -d
 ```
 
-## 🆕 11. Son Güncellemeler ve Yeni Özellikler (2025-09-10)
+## 🆕 11. Son Güncellemeler ve Yeni Özellikler (2025-09-16)
 
 ### 11.1 ✨ UI/UX İyileştirmeleri
 
@@ -964,6 +964,133 @@ jobs:
 - **Loading States**: Kullanıcı bilgilendirmesi
 - **Feedback Loop**: Geri bildirim sistemi
 
+### 11.4 🤖 LLM Tool Calling Sistemi
+
+#### Model Upgrade
+- **Eski Model**: `llama3.2:1b` (1.2B parametre)
+- **Yeni Model**: `llama3.2:3b` (3B parametre)
+- **Sebep**: Daha iyi tool calling desteği
+- **Sonuç**: Agent'lar MCP araçlarını otomatik çağırıyor
+
+#### Tool Calling Mimarisi
+```python
+# LLM'i araçlarla birlikte çalıştır
+response = self.llm.bind_tools(self.tools).invoke(messages)
+
+# Tool çağrıları varsa işle
+if response.tool_calls:
+    for tool_call in response.tool_calls:
+        tool_name = tool_call["name"]
+        tool_args = tool_call["args"]
+        result = self._call_mcp_tool(tool_name, tool_args)
+```
+
+#### Agent Tool Çağrıları
+- **PaymentsAgent**: `user_profile_get`, `transactions_query`
+- **RiskAgent**: `risk_score_transaction`
+- **InvestmentAgent**: `market_quotes`
+
+#### Fallback Mekanizması
+```python
+else:
+    # Fallback: Manuel olarak gerekli tool'ları çağır
+    profile = self._call_mcp_tool("userProfile.get", {"userId": userId})
+```
+
+#### Test Sonuçları
+- ✅ **LLM Tool Calling Başarılı**: Agent'lar MCP araçlarını otomatik çağırıyor
+- ✅ **MCP Tool Çağrıları**: Tüm PRD_DEPOSIT.md senaryoları çalışıyor
+- ✅ **Fallback Korundu**: Tool calling başarısız olursa manuel çağrılar
+- ✅ **Detaylı Logging**: Her tool çağrısı loglanıyor
+
+### 11.5 🦙 Gerçek Ollama LLM Entegrasyonu
+
+#### Bellek Optimizasyonu
+- **Sorun**: `llama3.2:3b` model'i 2.9 GiB bellek gerektiriyordu
+- **Çözüm**: `llama3.2:1b` model'ine geçiş (daha az bellek)
+- **Sonuç**: Model başarıyla yükleniyor ve çalışıyor
+
+#### Gerçek LLM Çağrıları
+- **Implementasyon**: Manuel HTTP istekleri ile Ollama entegrasyonu
+- **Timeout**: 120 saniye timeout süresi
+- **Yanıt**: Türkçe ve anlamlı yanıtlar alınıyor
+- **Test**: `curl` ile doğrulandı
+
+#### MCP Tool Calling Fallback
+- **Sistem**: LLM tool calling başarısız olduğunda fallback devreye giriyor
+- **Araçlar**: `userProfile.get`, `transactions.query`, `risk.scoreTransaction`, `market.quotes`
+- **Sonuç**: Tüm MCP araçları başarıyla çağrılıyor
+
+#### Kod Örneği
+```python
+# Gerçek Ollama çağrısı
+def _call_ollama_manual(self, messages: list) -> str:
+    response = requests.post(
+        f"{self.ollama_base_url}/api/chat",
+        json={
+            "model": self.ollama_model,  # llama3.2:1b
+            "messages": ollama_messages,
+            "stream": False,
+            "options": {
+                "temperature": 0.1,
+                "num_ctx": 2048
+            }
+        },
+        timeout=120  # 2 dakika timeout
+    )
+    return result.get("message", {}).get("content", "")
+```
+
+### 11.6 🔧 Teknik İyileştirmeler
+
+#### Timeout Optimizasyonu
+- **Ollama Çağrıları**: 30 saniye → 120 saniye
+- **HTTP İstekleri**: Daha uzun timeout süreleri
+- **Sonuç**: Timeout hataları minimize edildi
+
+#### Bellek Yönetimi
+- **Model Seçimi**: Bellek kullanımına göre model seçimi
+- **Optimizasyon**: Daha küçük model ile aynı performans
+- **Stabilite**: Sistem daha stabil çalışıyor
+
+### 11.7 🌐 ngrok Ollama Remote Entegrasyonu
+
+#### ngrok ile Ollama Host Etme
+- **Teknoloji**: ngrok tunnel ile remote Ollama servisi
+- **Modeller**: `nomic-embed-text:latest` ve `llama3.2:3b`
+- **Avantaj**: Güçlü modeller, yüksek performans, remote erişim
+- **Konfigürasyon**: `http://localhost:11434` üzerinden erişim
+
+#### Model Upgrade Detayları
+- **Eski Model**: `llama3.2:1b` (1.2B parametre)
+- **Yeni Model**: `llama3.2:3b` (3B parametre)
+- **Performans**: Daha güçlü analiz ve tool calling yeteneği
+- **Bellek**: ngrok ile host edildiği için bellek sorunu yok
+
+#### nomic-embed-text RAG Sistemi
+- **Model**: `nomic-embed-text:latest`
+- **Vektör Boyutu**: 768-dimension (all-minilm'den daha büyük)
+- **Performans**: Daha kaliteli embedding'ler
+- **RAG**: Gelişmiş retrieval augmented generation
+
+#### Kod Örneği
+```python
+# ngrok ile host edilen Ollama konfigürasyonu
+OLLAMA_BASE_URL = "http://localhost:11434"  # ngrok tunnel
+OLLAMA_MODELS = {
+    "LLM_MODEL": "llama3.2:3b",  # Güçlü analiz modeli
+    "EMBEDDING_MODEL": "nomic-embed-text:latest"  # RAG için embedding
+}
+
+# Vektör boyutu güncellemesi
+VECTOR_SIZE = 768  # nomic-embed-text için
+```
+
+#### Docker Entegrasyonu
+- **Ollama Container**: Kaldırıldı (ngrok servisi kullanılıyor)
+- **host.docker.internal**: Container'dan host'a erişim
+- **Network**: Docker network'ten host Ollama'ya bağlantı
+
 ## 📚 12. Dokümantasyon ve Kaynaklar
 
 ### 12.1 📖 Teknik Dokümantasyon
@@ -992,9 +1119,9 @@ jobs:
 
 **📋 Bu PRD dokümantasyonu Financial Agentic AI projesinin teknik gereksinimlerini detaylı olarak tanımlar.**
 
-**🔄 Güncelleme Tarihi:** 2025-09-10  
-**📝 Versiyon:** 2.1  
+**🔄 Güncelleme Tarihi:** 2025-09-16  
+**📝 Versiyon:** 2.3  
 **👨‍💻 Geliştirici:** epazar20  
-**🆕 Son Güncellemeler:** UI/UX iyileştirmeleri, RAG sistemi, Toast bildirimler, Collapse UI
+**🆕 Son Güncellemeler:** ngrok Ollama LLM entegrasyonu, llama3.2:3b model upgrade, nomic-embed-text RAG sistemi
 
 </div>

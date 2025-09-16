@@ -345,7 +345,7 @@ class APIHandler:
             # Request'i workflow formatına çevir
             workflow_event = {
                 "payload": {
-                    "userId": event.get("user_id"),
+                    "userId": event.get("userId") or event.get("user_id"),
                     "amount": event.get("amount")
                 },
                 "meta": {
