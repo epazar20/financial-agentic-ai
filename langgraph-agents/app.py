@@ -73,6 +73,7 @@ class FinancialAgenticApp:
         
         # Event broadcaster'ı başlat
         self.broadcaster = EventBroadcaster(self.publisher_queue)
+        self.broadcaster._start_broadcaster()
         
         # Finansal workflow'u oluştur
         print("🔧 Finansal Workflow başlatılıyor...")

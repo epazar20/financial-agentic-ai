@@ -19,9 +19,9 @@ services:
       HUGGINGFACE_MODEL: ${HUGGINGFACE_MODEL:-deepseek/deepseek-v3-0324}
       # Kafka Integration
       KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-financial-kafka:9092}
-      # Ollama Integration (ngrok ile host edilen remote servis)
+      # Ollama Integration (remote ngrok endpoint kullanılıyor)
       OLLAMA_HOST: ${OLLAMA_HOST:-https://kitten-humble-manatee.ngrok-free.app}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-https://kitten-humble-manatee.ngrok-free.app}
       # Flask Configuration
       FLASK_HOST: ${FLASK_HOST:-0.0.0.0}
       FLASK_PORT: ${FLASK_PORT:-5000}

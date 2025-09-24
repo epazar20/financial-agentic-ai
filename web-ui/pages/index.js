@@ -201,10 +201,10 @@ export default function Home(){
       const response = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001") + "/approve_all_proposals", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-          userId: item.userId || "web_ui_user",
+      body: JSON.stringify({
+        userId: item.userId || "web_ui_user",
           response: "approve_all",
-          proposal: item.proposal || item,
+        proposal: item.proposal || item,
           correlationId: item.correlationId || "corr-demo",
           originalMessage: item.message,
           allProposals: {
@@ -212,8 +212,8 @@ export default function Home(){
             risk: item.riskProposal || {score: 0.05, reason: "low risk"},
             investment: item.investmentProposal || {type: "bond", rate: 0.28}
           }
-        })
-      });
+      })
+    });
       
       if (response.ok) {
         const result = await response.json();
@@ -263,14 +263,14 @@ export default function Home(){
       const response = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001") + "/reject_all_proposals", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-          userId: item.userId || "web_ui_user",
+      body: JSON.stringify({
+        userId: item.userId || "web_ui_user",
           response: "reject_all",
-          proposal: item.proposal || item,
+        proposal: item.proposal || item,
           correlationId: item.correlationId || "corr-demo",
           originalMessage: item.message
-        })
-      });
+      })
+    });
       
       if (response.ok) {
         const result = await response.json();
@@ -652,14 +652,14 @@ export default function Home(){
                         justifyContent: 'center',
                         flexWrap: 'wrap'
                       }}>
-                        <button 
-                          onClick={() => approve(ev)}
+                      <button 
+                        onClick={() => approve(ev)}
                           disabled={buttonsDisabled}
-                          style={{
+                        style={{
                             padding: '12px 24px',
                             backgroundColor: buttonsDisabled ? '#6c757d' : '#28a745',
-                            color: 'white',
-                            border: 'none',
+                          color: 'white',
+                          border: 'none',
                             borderRadius: 8,
                             cursor: buttonsDisabled ? 'not-allowed' : 'pointer',
                             fontSize: '16px',
@@ -673,18 +673,18 @@ export default function Home(){
                           }}
                           onMouseOver={(e) => !buttonsDisabled && (e.target.style.backgroundColor = '#218838')}
                           onMouseOut={(e) => !buttonsDisabled && (e.target.style.backgroundColor = '#28a745')}
-                        >
-                          ✅ Evet (Onayla)
-                        </button>
+                      >
+                        ✅ Evet (Onayla)
+                      </button>
                         
-                        <button 
-                          onClick={() => reject(ev)}
+                      <button 
+                        onClick={() => reject(ev)}
                           disabled={buttonsDisabled}
-                          style={{
+                        style={{
                             padding: '12px 24px',
                             backgroundColor: buttonsDisabled ? '#6c757d' : '#dc3545',
-                            color: 'white',
-                            border: 'none',
+                          color: 'white',
+                          border: 'none',
                             borderRadius: 8,
                             cursor: buttonsDisabled ? 'not-allowed' : 'pointer',
                             fontSize: '16px',
@@ -698,9 +698,9 @@ export default function Home(){
                           }}
                           onMouseOver={(e) => !buttonsDisabled && (e.target.style.backgroundColor = '#c82333')}
                           onMouseOut={(e) => !buttonsDisabled && (e.target.style.backgroundColor = '#dc3545')}
-                        >
-                          ❌ Hayır (Reddet)
-                        </button>
+                      >
+                        ❌ Hayır (Reddet)
+                      </button>
                         
                         <button 
                           onClick={() => openCustomMessageModal(ev)}
@@ -1528,9 +1528,9 @@ export default function Home(){
                     </div>
                     
                     {!collapsedEvents.has(`event-${ev.correlationId}-${ev.timestamp}`) && (
-                      <pre style={{whiteSpace: 'pre-wrap', fontSize: '12px', backgroundColor: '#f1f1f1', padding: 10, borderRadius: 4}}>
-                        {JSON.stringify(ev, null, 2)}
-                      </pre>
+                    <pre style={{whiteSpace: 'pre-wrap', fontSize: '12px', backgroundColor: '#f1f1f1', padding: 10, borderRadius: 4}}>
+                      {JSON.stringify(ev, null, 2)}
+                    </pre>
                     )}
                   </div>
                 )}

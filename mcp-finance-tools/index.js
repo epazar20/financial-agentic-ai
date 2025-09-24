@@ -27,6 +27,27 @@ const mockData = {
         { id: 'tx1001', amount: 25000, type: 'salary_deposit', timestamp: Date.now(), merchant: 'Employer' },
         { id: 'tx1002', amount: 7500, type: 'savings_transfer', timestamp: Date.now() - 86400000, status: 'completed' }
       ]
+    },
+    'test_user_e2e': {
+      profile: {
+        userId: 'test_user_e2e',
+        name: 'Test User E2E',
+        riskProfile: 'conservative',
+        preferences: {
+          autoSavingsRate: 0.30,
+          preferredInvestments: ['bond', 'fund'],
+          riskTolerance: 'low'
+        }
+      },
+      accounts: {
+        checking: { id: 'CHK001', balance: 50000, type: 'checking' },
+        savings: { id: 'SV001', balance: 15000, type: 'savings' },
+        investment: { id: 'INV001', balance: 25000, type: 'investment' }
+      },
+      transactions: [
+        { id: 'tx2001', amount: 25000, type: 'salary_deposit', timestamp: Date.now(), merchant: 'Employer' },
+        { id: 'tx2002', amount: 7500, type: 'savings_transfer', timestamp: Date.now() - 86400000, status: 'completed' }
+      ]
     }
   },
   marketData: {
@@ -307,7 +328,122 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
+// Alias endpoints for LLM tool calling compatibility
+app.post('/user_profile_get', (req, res) => {
+  // Redirect to userProfile.get
+  const userId = req.body.userId || 'web_ui_user';
+  const user = mockData.users[userId];
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  res.json({ userId, ...user });
+});
+
+app.post('/userProfile_get', (req, res) => {
+  // Redirect to userProfile.get
+  const userId = req.body.userId || 'web_ui_user';
+  const user = mockData.users[userId];
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  res.json({ userId, ...user });
+});
+
+app.post('/transactions_query', (req, res) => {
+  // Redirect to transactions.query
+  const body = req.body;
+  const userId = body.userId || 'web_ui_user';
+  const limit = body.limit || 10;
+  const since = body.since;
+  
+  const user = mockData.users[userId];
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  let transactions = user.transactions || [];
+  if (since) {
+    const sinceDate = new Date(since);
+    transactions = transactions.filter(tx => new Date(tx.timestamp) >= sinceDate);
+  }
+  
+  res.json({
+    transactions: transactions.slice(0, limit),
+    total: transactions.length,
+    userId
+  });
+});
+
+app.post('/risk_score_transaction', (req, res) => {
+  // Redirect to risk.scoreTransaction
+  const body = req.body;
+  const userId = body.userId || 'web_ui_user';
+  const tx = body.tx || {};
+  
+  // Simple risk scoring logic
+  let score = 0.5; // default medium risk
+  if (tx.amount < 1000) score = 0.1;
+  else if (tx.amount < 10000) score = 0.3;
+  else if (tx.amount < 50000) score = 0.5;
+  else score = 0.8;
+  
+  if (tx.type === 'internal_transfer') score *= 0.1; // internal transfers are low risk
+  
+  res.json({
+    score,
+    reason: score < 0.3 ? 'low risk' : score < 0.7 ? 'medium risk' : 'high risk',
+    factors: ['amount', 'type', 'user_history'],
+    recommendation: score < 0.5 ? 'approve' : 'review',
+    userId,
+    timestamp: Date.now()
+  });
+});
+
+app.post('/savings_create_transfer', (req, res) => {
+  // Redirect to savings.createTransfer
+  const body = req.body;
+  const userId = body.userId || 'web_ui_user';
+  const amount = body.amount || 0;
+  const fromAccount = body.fromAccount || 'CHK001';
+  const toSavingsId = body.toSavingsId || 'SV001';
+  
+  const txId = `tx-${Math.floor(Math.random() * 10000)}`;
+  
+  res.json({
+    status: 'pending',
+    txId,
+    userId,
+    amount,
+    fromAccount,
+    toSavingsId,
+    executedAt: null,
+    createdAt: new Date().toISOString()
+  });
+});
+
+app.post('/savings_createTransfer', (req, res) => {
+  // Redirect to savings.createTransfer
+  const body = req.body;
+  const userId = body.userId || 'web_ui_user';
+  const amount = body.amount || 0;
+  const fromAccount = body.fromAccount || 'CHK001';
+  const toSavingsId = body.toSavingsId || 'SV001';
+  
+  const txId = `tx-${Math.floor(Math.random() * 10000)}`;
+  
+  res.json({
+    status: 'pending',
+    txId,
+    userId,
+    amount,
+    fromAccount,
+    toSavingsId,
+    executedAt: null,
+    createdAt: new Date().toISOString()
+  });
+});
+
+// 404 handler - must be last
 app.use((req, res) => {
   res.status(404).json({ 
     error: 'Tool not found',
@@ -321,5 +457,6 @@ app.listen(PORT, () => {
   console.log(`🚀 MCP Finance Tools Server v2.0 listening on port ${PORT}`);
   console.log(`📊 Available tools: transactions.query, userProfile.get, risk.scoreTransaction, market.quotes, savings.createTransfer`);
   console.log(`🆕 Enhanced tools: payments.modifyTransfer, investment.updatePreference, risk.performAnalysis, general.getAdvice, portfolio.getStatus`);
+  console.log(`🔧 Alias tools: user_profile_get, transactions_query, risk_score_transaction, savings_create_transfer, savings_createTransfer`);
   console.log(`💾 Mock data loaded for ${Object.keys(mockData.users).length} users`);
 });

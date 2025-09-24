@@ -191,10 +191,10 @@ class FinancialWorkflow:
         """
         return [
             transactions_query,
-            user_profile_get,
-            risk_score_transaction,
+            userProfile_get,
+            risk_scoreTransaction,
             market_quotes,
-            savings_create_transfer
+            savings_createTransfer
         ]
     
     def _create_langgraph_workflow(self):
@@ -395,7 +395,7 @@ Otomatik tasarruf oranını hesaplayarak transfer önerisi oluştur.
                     print(f"📤 Tool result: {str(result)[:200]}...")
                     
                     # Sonuçları sakla
-                    if tool_name == "user_profile_get":
+                    if tool_name == "userProfile_get":
                         profile = result
                     elif tool_name == "transactions_query":
                         transactions = result
@@ -606,7 +606,7 @@ Risk skorunu hesapla ve analiz et.
                     print(f"📤 Tool result: {str(result)[:200]}...")
                     
                     # Sonuçları sakla
-                    if tool_name == "risk_score_transaction":
+                    if tool_name == "risk_scoreTransaction":
                         risk_result = result
                 
                 # Tool sonuçlarını mesaj olarak ekle
@@ -1364,7 +1364,7 @@ def transactions_query(userId: str, since: str = None, limit: int = 10) -> dict:
 
 
 @tool
-def user_profile_get(userId: str) -> dict:
+def userProfile_get(userId: str) -> dict:
     """
     Kullanıcı profilini ve tercihlerini getirir
     
@@ -1378,7 +1378,7 @@ def user_profile_get(userId: str) -> dict:
 
 
 @tool
-def risk_score_transaction(userId: str, tx: dict) -> dict:
+def risk_scoreTransaction(userId: str, tx: dict) -> dict:
     """
     İşlem risk skorunu hesaplar
     
@@ -1414,7 +1414,7 @@ def market_quotes(assetType: str, tenor: str = "1Y") -> dict:
 
 
 @tool
-def savings_create_transfer(userId: str, fromAccount: str, toSavingsId: str, amount: int) -> dict:
+def savings_createTransfer(userId: str, fromAccount: str, toSavingsId: str, amount: int) -> dict:
     """
     Tasarruf transferi oluşturur
     
